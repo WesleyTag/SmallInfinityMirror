@@ -8,23 +8,25 @@
 #include <WiFiUdp.h>
 //#include <PubSubClient.h>
 #include <ESP8266HTTPUpdateServer.h>
+String message;   // Pass debug messages to the default page
+
+#include <IPGeolocation.h>
 #include <NTPClient.h>
 #include <ArduinoJson.h>
-//#include <FS.h>
+#include <FS.h>
 
 #define FASTLED_INTERNAL
 //#define FASTLED_ESP8266_RAW_PIN_ORDER
 #define FASTLED_ESP8266_D1_PIN_ORDER
 //#define FASTLED_ALLOW_INTERRUPTS 0
 #include "FastLED.h"
-#include "EEPROM.h"
 
-#include "config.h"
 
 #define NUM_LEDS 60
 #define DATA_PIN D2
 #define UPDATES_PER_SECOND 35
-//#define MQTT_MAX_PACKET_SIZE 256
+CRGBArray<NUM_LEDS> leds; 
+CRGB minutes,hours,seconds,bg,lines; //,l
 
 
 #include "palette.h"
@@ -38,21 +40,18 @@ const TProgmemRGBGradientPalettePtr gGradientPalettes[] = {
 const uint8_t gGradientPaletteCount =
   sizeof( gGradientPalettes) / sizeof( TProgmemRGBGradientPalettePtr );
 // Current palette number from the 'playlist' of color palettes
-uint8_t gCurrentPaletteNumber = 1;
+//uint8_t gCurrentPaletteNumber = 1;
 
-CRGBPalette16 gCurrentPalette( gGradientPalettes[gCurrentPaletteNumber]);
+CRGBPalette16 gCurrentPalette( gGradientPalettes[0]);
 
-CRGBArray<NUM_LEDS> leds; //,led2;
-//CRGBArray<12> hourleds;
-CRGB minutes,hours,seconds,l,bg,lines;
-int light_low, light_high;
 boolean missed=0, ledState = 1,  multieffects = 0; //lastsec=1,
-byte  rain; //lastsecond,
-String message;
-//void callback(const MQTT::Publish& pub);
 
+/*#define MQTT_MAX_PACKET_SIZE 256
+void callback(const MQTT::Publish& pub);
+WiFiClient espClient;
+IPAddress server;
+PubSubClient client(espClient, server);*/
 
-// NTP Servers:
 
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, "europe.pool.ntp.org", 3600, 360000); //19800
@@ -60,24 +59,19 @@ NTPClient timeClient(ntpUDP, "europe.pool.ntp.org", 3600, 360000); //19800
 ESP8266WebServer httpServer(80);
 ESP8266HTTPUpdateServer httpUpdater;
 
+#include "config.h"
+
 void setup() {
     // put your setup code here, to run once:
     delay(3000);
+    wdt_disable();
     Serial.begin(74880);
-    FastLED.addLeds<WS2812B, 4, GRB>(leds, 60); //.setCorrection(TypicalLEDStrip);
-    //FastLED.addLeds<WS2812B, 5, GRB>(hourleds, 12); //.setCorrection(TypicalLEDStrip);
-    fill_palette(leds, NUM_LEDS, 0, 0, gCurrentPalette, 10, NOBLEND);
-    //fill_palette(hourleds, 12, 0, 0, gCurrentPalette, 10, NOBLEND);
-    FastLED.setBrightness(constrain(light_high,10,255));
-    //reverseLEDs();
-    FastLED.show();
+
     Serial.println("Wifi Setup Initiated");
-    //delay(1000);
     WiFi.setAutoConnect ( true );
     WiFi.setSleepMode(WIFI_NONE_SLEEP);
     WiFiManager wifiManager;
     //wifiManager.resetSettings();
-    //wifiManager.setConfigPortalTimeout(180);
     wifiManager.setTimeout(180);
     //wifiManager.setConnectTimeout(120);
     if(!wifiManager.autoConnect("smallinfinityClock")) {
@@ -86,78 +80,64 @@ void setup() {
       delay(5000);
       }
     Serial.println("Wifi Setup Completed");
+
     MDNS.begin("smallinfinityclock");
+
+    //MDNS.addService("http", "tcp", 80);
+    timeClient.begin();
+    if(loadConfig()) { 
+      Serial.println("Configuration Loaded");
+    } 
+    else {                            // Save default configuration in case there is nothing on the SPIFFS
+      config.seconds = "0x000000";
+      config.minutes = "0x0a2c35"; 
+      config.hours = "0xd22d00"; 
+      config.bg = "0x000000"; 
+      config.lines = "0x404032";
+      config.light_low = 0; 
+      config.light_high = 64; 
+      config.rain = 30; 
+      config.gCurrentPaletteNumber = 2; 
+      config.ntpServerName = "europe.pool.ntp.org"; 
+      config.Update_Time_Via_NTP_Every = 360000;
+      config.timezoneoffset = 3600; 
+      config.autoTimezone = true;
+      config.switch_off = 22;
+      config.switch_on = 6;
+      config.MQTT = false;
+      config.MQTTServer = "";
+      config.IPGeoKey = "b294be4d4a3044d9a39ccf42a564592b";
+
+      seconds = strtol(config.seconds.c_str(), NULL, 16);
+      minutes = strtol(config.minutes.c_str(), NULL, 16);
+      hours = strtol(config.hours.c_str(), NULL, 16);
+      lines = strtol(config.lines.c_str(), NULL, 16);
+      bg = strtol(config.bg.c_str(), NULL, 16);
+
+      if(config.autoTimezone){
+        IPGeolocation IPG(config.IPGeoKey);
+        IPG.updateStatus();
+        config.timezoneoffset = IPG.getOffset();
+        timeClient.setTimeOffset(config.timezoneoffset*3600);
+        //timeClient.setPoolServerName(config.ntpServerName.c_str);
+        timeClient.setUpdateInterval(config.Update_Time_Via_NTP_Every);
+        timeClient.forceUpdate();
+      }
+      saveConfig();
+    }
+
+    FastLED.addLeds<WS2812B, 4, GRB>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip);
+    FastLED.setBrightness(constrain(config.light_high,10,255));
+    //reverseLEDs();
+    fill_solid(leds, NUM_LEDS, bg);
+    FastLED.show();
+    gCurrentPalette = gGradientPalettes[config.gCurrentPaletteNumber];
+    
     httpUpdater.setup(&httpServer);
     //httpServer.on("/time", handleRoot);
     httpServer.onNotFound(handleNotFound);
     httpServer.begin();
-
-    //MDNS.addService("http", "tcp", 80);
-    timeClient.begin();
-
-    EEPROM.begin(512);
-
-    if (EEPROM.read(109) != 2){               // Check if colours have been set or not
-
-      seconds.r = 0;
-      seconds.g = 0;
-      seconds.b = 0;
-      minutes.r = 10;
-      minutes.g = 44;
-      minutes.b = 53;
-      hours.r = 210;
-      hours.g = 45;
-      hours.b = 0;
-      bg.r = 0;
-      bg.g = 0;
-      bg.b = 0;
-      light_low = 0;
-      light_high = 65;
-      rain = 30;
-      gCurrentPaletteNumber = 2;
-
-      EEPROM.write(0,0);                   // Seconds Colour
-      EEPROM.write(1,0);
-      EEPROM.write(2,0);
-      EEPROM.write(3,10);                   // Minutes Colour
-      EEPROM.write(4,44);
-      EEPROM.write(5,53);
-      EEPROM.write(6,210);                     // Hours Colour
-      EEPROM.write(7,45);
-      EEPROM.write(8,0);
-      EEPROM.write(9,0);                     // BG Colour
-      EEPROM.write(10,0);
-      EEPROM.write(11,0);
-      EEPROM.write(12, 0);                   // Light sensitivity - low
-      EEPROM.write(13, 65);                  // Light sensitivity - high
-      EEPROM.write(14, 30);                  // Minutes for each rainbow
-      EEPROM.write(15, 2);                    // Current Palette
-      EEPROM.write(109,2);
-      EEPROM.commit();
-    }
-    // Else read the parameters from the EEPROM
-    else {
-      seconds.r = EEPROM.read(0);
-      seconds.g = EEPROM.read(1);
-      seconds.b = EEPROM.read(2);
-      minutes.r = EEPROM.read(3);
-      minutes.g = EEPROM.read(4);
-      minutes.b = EEPROM.read(5);
-      hours.r = EEPROM.read(6);
-      hours.g = EEPROM.read(7);
-      hours.b = EEPROM.read(8);
-      bg.r = EEPROM.read(9);
-      bg.g = EEPROM.read(10);
-      bg.b = EEPROM.read(11);
-      light_low = EEPROM.read(12);
-      light_high = EEPROM.read(13);
-      rain = EEPROM.read(14);
-      gCurrentPaletteNumber = EEPROM.read(15);
-    }
-    fill_solid(leds, NUM_LEDS, bg);
-    //fill_solid(hourleds, 12, bg);
-    FastLED.show();
-    gCurrentPalette = gGradientPalettes[gCurrentPaletteNumber];
+    wdt_enable(WDTO_8S);
 }
 
 void loop() {
@@ -171,7 +151,7 @@ void loop() {
 
 void showTime(int hr, int mn, int sec) {
   if(sec==0) fill_solid(leds, NUM_LEDS, bg);
-  if(( mn % rain == 0 && sec == 0)){
+  if(( mn % config.rain == 0 && sec == 0)){
        effects();
     }
   colorwaves( leds, mn, gCurrentPalette);
@@ -181,12 +161,12 @@ void showTime(int hr, int mn, int sec) {
   if(hr%12*5-1 > 0)
     leds[hr%12*5-1]=hours;
   else leds[59]=hours; for(byte i = 0; i<60; i+=5){
-    leds[i]= CRGB(20,30,0); //CRGB(64,64,50);
+    leds[i]= lines; 
   }
   if(hr < 7 || hr >= 22)
-    LEDS.setBrightness(constrain(0,0,100)); // Set brightness to light_low during night - cools down LEDs and power supplies.
+    LEDS.setBrightness(constrain(config.light_low,0,100)); // Set brightness to light_low during night - cools down LEDs and power supplies.
   else
-    LEDS.setBrightness(constrain(light_high,10,255));
+    LEDS.setBrightness(constrain(config.light_high,10,255));
 }
 
 /*void callback(const MQTT::Publish& pub) {

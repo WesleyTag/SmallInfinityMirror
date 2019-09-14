@@ -14,6 +14,7 @@ struct strConfig {
   String minutes;
   String hours;
   String bg;
+  String lines;
   int light_low;
   int light_high;
   int rain;
@@ -25,6 +26,9 @@ struct strConfig {
 	boolean daylight;
   byte switch_off;
   byte switch_on;
+  String MQTTServer;
+  boolean MQTT;
+  String IPGeoKey;
 }   config;
 
 
@@ -36,6 +40,7 @@ bool  saveConfig ( )  {
   doc["minutes"] = config.minutes;
   doc["hours"] = config.hours;
   doc["bg"] = config.bg;
+  doc["lines"] = config.lines;
   doc["light_low"] = config.light_low;
   doc["light_high"] = config.light_high;
   doc["rain"] = config.rain;
@@ -46,6 +51,9 @@ bool  saveConfig ( )  {
   doc["autoTimezone"] = config.autoTimezone;
   doc["switch_off"] = config.switch_off;
   doc["switch_on"] = config.switch_on;
+  doc["MQTTServer"] = config.MQTTServer;
+  doc["MQTT"] = config.MQTT;
+  doc["IPGeoKey"] = config.IPGeoKey;
 
   File  configFile  =  SPIFFS.open ( "/config.json" ,  "w" ) ; 
   if  ( !configFile )  { 
@@ -77,20 +85,21 @@ bool  loadConfig() {
   // buffer to be mutable. If you don't use ArduinoJson, you may as well 
   // use configFile.readString instead. 
   configFile.readBytes( buf.get(), size ) ;
-
+  message+= buf.get();
   const size_t capacity = JSON_OBJECT_SIZE(12) + 170;
   DynamicJsonDocument doc(capacity);
   //const char* json = "{\"seconds\":\"\",\"minutes\":\"\",\"hours\":\"\",\"bg\":\"\",\"light_low\":0,\"light_high\":100,\"rain\":30,\"gCurrentPaletteNumber\":1,\"ntpServerName\":\"\",\"Update_Time_Via_NTP_Every\":3600,\"timezoneoffset\":3600,\"autoTimezone\":1}";
   
   if  ( !deserializeJson(doc, buf.get()))  { 
     Serial.println( "Failed to parse config file" ) ; 
-    return  false ; 
+    return  false; 
   }
 
   config.seconds = doc["seconds"].as<String>(); 
   config.minutes = doc["minutes"].as<String>(); 
   config.hours = doc["hours"].as<String>(); 
   config.bg = doc["bg"].as<String>(); 
+  config.lines = doc["lines"].as<String>();
   config.light_low = doc["light_low"]; 
   config.light_high = doc["light_high"]; 
   config.rain = doc["rain"]; 
@@ -101,6 +110,27 @@ bool  loadConfig() {
   config.autoTimezone = doc["autoTimezone"];
   config.switch_off = doc["switch_off"];
   config.switch_on = doc["switch_on"];
+  config.MQTTServer = doc["MQTTServer"].as<String>();
+  config.MQTT = doc["MQTT"];
+  config.IPGeoKey = doc["IPGeoKey"].as<String>();
+
+  seconds = strtol(config.seconds.c_str(), NULL, 16);
+  minutes = strtol(config.minutes.c_str(), NULL, 16);
+  hours = strtol(config.hours.c_str(), NULL, 16);
+  lines = strtol(config.lines.c_str(), NULL, 16);
+  bg = strtol(config.bg.c_str(), NULL, 16);
+  IPGeolocation IPG(config.IPGeoKey);
+  //if (config.MQTT) server.fromString(config.MQTTServer);
+
+  if(config.autoTimezone){
+        IPGeolocation IPG(config.IPGeoKey);
+        IPG.updateStatus();
+        config.timezoneoffset = IPG.getOffset();
+        timeClient.setTimeOffset(config.timezoneoffset*3600);
+        //timeClient.setPoolServerName(config.ntpServerName);
+        timeClient.setUpdateInterval(config.Update_Time_Via_NTP_Every);
+        timeClient.forceUpdate();
+      }
 
   return  true ; 
 }
