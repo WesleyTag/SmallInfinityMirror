@@ -1,19 +1,24 @@
 #include "Arduino.h"
 #include <ESP8266WiFi.h>
 #include <DNSServer.h>
-#include <ESP8266WebServer.h>
-#include <WiFiManager.h>
 #include <ESP8266mDNS.h>
+#include <ESP8266WebServer.h>
+#include <ESP8266HTTPUpdateServer.h>
+ESP8266WebServer httpServer(80);
+ESP8266HTTPUpdateServer httpUpdater;
+String message;   // Pass debug messages to the default page
+
+#include <WiFiManager.h>
+
 //#include <TimeLib.h>
 #include <WiFiUdp.h>
 //#include <PubSubClient.h>
-#include <ESP8266HTTPUpdateServer.h>
-String message;   // Pass debug messages to the default page
 
-#include <IPGeolocation.h>
+#include <IPGeolocation.h>              // Get timezone from IPGeolocation.io
 #include <NTPClient.h>
-#include <ArduinoJson.h>
-#include <FS.h>
+
+WiFiUDP ntpUDP;
+NTPClient timeClient(ntpUDP, "europe.pool.ntp.org", 3600, 360000); //19800
 
 #define FASTLED_INTERNAL
 //#define FASTLED_ESP8266_RAW_PIN_ORDER
@@ -52,20 +57,21 @@ WiFiClient espClient;
 IPAddress server;
 PubSubClient client(espClient, server);*/
 
-
-WiFiUDP ntpUDP;
-NTPClient timeClient(ntpUDP, "europe.pool.ntp.org", 3600, 360000); //19800
-
-ESP8266WebServer httpServer(80);
-ESP8266HTTPUpdateServer httpUpdater;
+#include <ArduinoJson.h>
+#include <FS.h>
 
 #include "config.h"
+#include "Page_Script.js.h"
+#include "Page_Style.css.h"
+#include "Page_Admin.h"
+#include "Page_NTPSettings.h"
+
 
 void setup() {
     // put your setup code here, to run once:
     delay(3000);
     wdt_disable();
-    Serial.begin(74880);
+    Serial.begin(9600);
 
     Serial.println("Wifi Setup Initiated");
     WiFi.setAutoConnect ( true );
@@ -79,7 +85,7 @@ void setup() {
       ESP.reset();
       delay(5000);
       }
-    Serial.println("Wifi Setup Completed");
+    //Serial.println("Wifi Setup Completed");
 
     MDNS.begin("smallinfinityclock");
 
@@ -136,6 +142,21 @@ void setup() {
     httpUpdater.setup(&httpServer);
     //httpServer.on("/time", handleRoot);
     httpServer.onNotFound(handleNotFound);
+    // Admin page
+    httpServer.on ( "/", []() {
+        //Serial.println("admin.html");
+        httpServer.send ( 200, "text/html", FPSTR(PAGE_AdminMainPage) );  // const char top of page
+    }  );
+    httpServer.on ( "/style.css", []() {
+        //Serial.println("style.css");
+        httpServer.send ( 200, "text/plain", FPSTR(PAGE_Style_css) );
+      } );
+    httpServer.on ( "/microajax.js", []() {
+        //Serial.println("microajax.js");
+        httpServer.send ( 200, "text/plain", FPSTR(PAGE_microajax_js) );
+      } );
+    httpServer.on ( "/ntp.html", send_NTP_configuration_html );
+    httpServer.on ( "/admin/ntpvalues", send_NTP_configuration_values_html );
     httpServer.begin();
     wdt_enable(WDTO_8S);
 }
@@ -389,25 +410,16 @@ void colorwaves( CRGB* ledarray, uint16_t numleds, CRGBPalette16& palette)
 }*/
 
 
-void handleNotFound(){
+void handleNotFound(){      // Use the handleNotFound procedure to print out debug messages
   //digitalWrite(led, 1);
-  message= "Time: ";
+  message+= "Time: ";
   message+= String(timeClient.getHours()) + ":" + String(timeClient.getMinutes())+ ":" + String(timeClient.getSeconds()) + "\n";
   message+= "BG: " + String(bg.r) + "-" + String(bg.g) + "-" + String(bg.b) +"\n";
   message+= "SEC: " + String(seconds.r) + "-" + String(seconds.g) + "-" + String(seconds.b) +"\n";
   message+= "MINUTE: " + String(minutes.r) + "-" + String(minutes.g) + "-" + String(minutes.b) +"\n";
   message+= "HOUR: " + String(hours.r) + "-" + String(hours.g) + "-" + String(hours.b) +"\n";
-  /* message += "URI: ";
-  message += httpServer.uri();
-  message += "\nMethod: ";
-  message += (httpServer.method() == HTTP_GET)?"GET":"POST";
-  message += "\nArguments: ";
-  message += httpServer.args();
-  message += "\n";
-  for (uint8_t i=0; i<httpServer.args(); i++){
-    message += " " + httpServer.argName(i) + ": " + httpServer.arg(i) + "\n";
-  }*/
   httpServer.send(404, "text/plain", message);
+  message="";
   //digitalWrite(led, 0);
 }
 

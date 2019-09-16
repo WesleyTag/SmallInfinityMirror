@@ -6,8 +6,8 @@ const char PAGE_AdminMainPage[] PROGMEM = R"=====(
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <strong>Administration</strong>
 <hr>
-<a href="admin" style="width:250px" class="btn btn--m btn--blue" >Clock Configuration</a><br>
-<a href="ntp" style="width:250px" class="btn btn--m btn--blue" >NTP Configuration</a><br>
+<a href="admin.html" style="width:250px" class="btn btn--m btn--blue" >Clock Configuration</a><br>
+<a href="ntp.html" style="width:250px" class="btn btn--m btn--blue" >NTP Configuration</a><br>
 <a href="update" style="width:250px" class="btn btn--m btn--blue" >Upload New Firmware</a><br>
 <script>
 window.onload = function ()

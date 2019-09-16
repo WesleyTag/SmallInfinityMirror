@@ -60,7 +60,7 @@ bool  saveConfig ( )  {
     Serial . println ( "Failed to open config file for writing" ) ; 
     return  false ; 
   }
-  serializeJson(doc, configFile);
+  serializeJsonPretty(doc, configFile);
    
   return  true ; 
 }
@@ -133,4 +133,10 @@ bool  loadConfig() {
       }
 
   return  true ; 
+}
+
+void resetSettings(){
+  SPIFFS.remove("/config.json");
+  delay(3000);
+  ESP.reset();
 }

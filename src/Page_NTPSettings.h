@@ -71,3 +71,32 @@ function load(e,t,n){if("js"==t){var a=document.createElement("script");a.src=e,
 )=====";
 
 
+void send_NTP_configuration_html()
+{
+  if (httpServer.args() > 0 )  // Save Settings
+  {
+    String temp = "";
+    for ( uint8_t i = 0; i < httpServer.args(); i++ ) {
+      if (httpServer.argName(i) == "ntpserver") config.ntpServerName = httpServer.arg(i); 
+      if (httpServer.argName(i) == "update") config.Update_Time_Via_NTP_Every =  httpServer.arg(i).toInt(); 
+      //if (httpServer.argName(i) == "tz") config.timeZone =  server.arg(i).toInt(); 
+    }
+    saveConfig();
+  }
+  httpServer.send ( 200, "text/html", FPSTR(PAGE_NTPConfiguration) ); 
+  Serial.println(__FUNCTION__); 
+  
+}
+
+
+
+void send_NTP_configuration_values_html()
+{
+    
+  String values ="";
+  values += "ntpserver|" + (String) config.ntpServerName + "|input\n";
+  values += "update|" +  (String) config.Update_Time_Via_NTP_Every + "|input\n";
+  //values += "tz|" +  (String) config.timeZone + "|input\n";
+  httpServer.send ( 200, "text/plain", values);
+  Serial.println(__FUNCTION__); 
+}
