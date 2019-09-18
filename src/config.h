@@ -33,6 +33,7 @@ struct strConfig {
 
 
 bool  saveConfig ( )  { 
+  SPIFFS.begin();
   const size_t capacity = JSON_OBJECT_SIZE(12);
   DynamicJsonDocument doc(capacity);
 
@@ -61,11 +62,12 @@ bool  saveConfig ( )  {
     return  false ; 
   }
   serializeJsonPretty(doc, configFile);
-   
+  SPIFFS.end();
   return  true ; 
 }
 
 bool  loadConfig() { 
+  SPIFFS.begin();
   if (!SPIFFS.exists("config.json")) return false;
   File  configFile  =  SPIFFS.open("config.json","r"); 
   if(!configFile)  { 

@@ -29,7 +29,7 @@ NTPClient timeClient(ntpUDP, "europe.pool.ntp.org", 3600, 360000); //19800
 
 #define NUM_LEDS 60
 #define DATA_PIN D2
-#define UPDATES_PER_SECOND 35
+#define UPDATES_PER_SECOND 60
 CRGBArray<NUM_LEDS> leds; 
 CRGB minutes,hours,seconds,bg,lines; //,l
 
@@ -73,25 +73,6 @@ void setup() {
     wdt_disable();
     Serial.begin(74880);
 
-    Serial.println("Wifi Setup Initiated");
-    WiFi.setAutoConnect ( true );
-    WiFi.setSleepMode(WIFI_NONE_SLEEP);
-    WiFiManager wifiManager;
-    //wifiManager.resetSettings();
-    wifiManager.setTimeout(180);
-    //wifiManager.setConnectTimeout(120);
-    if(!wifiManager.autoConnect("smallinfinityClock")) {
-      delay(3000);
-      ESP.reset();
-      delay(5000);
-      }
-    //Serial.println("Wifi Setup Completed");
-
-    MDNS.begin("smallinfinityclock");
-    MDNS.addService("http", "tcp", 80);
-    timeClient.begin();
-    SPIFFS.begin();
-
     if(loadConfig()) { 
       Serial.println("Configuration Loaded");
     } 
@@ -124,16 +105,35 @@ void setup() {
       saveConfig();
       //Serial.println("Configuration Saved");
     }
+
+    Serial.println("Wifi Setup Initiated");
+    WiFi.setAutoConnect ( true );
+    WiFi.setSleepMode(WIFI_NONE_SLEEP);
+    WiFiManager wifiManager;
+    //wifiManager.resetSettings();
+    wifiManager.setTimeout(180);
+    //wifiManager.setConnectTimeout(120);
+    if(!wifiManager.autoConnect("smallinfinityClock")) {
+      delay(3000);
+      ESP.reset();
+      delay(5000);
+      }
+    //Serial.println("Wifi Setup Completed");
+
+    MDNS.begin("smallinfinityclock");
+    MDNS.addService("http", "tcp", 80);
+    timeClient.begin();
+
     if(config.autoTimezone){
       IPGeolocation IPG(config.IPGeoKey);
       Serial.println("Start Updating Timezone");
-      IPG.updateStatus();
+      //IPG.updateStatus();
       Serial.println("Updated Timezone");
-      config.timezoneoffset = IPG.getOffset();
-      timeClient.setTimeOffset(config.timezoneoffset*3600);
+      //config.timezoneoffset = IPG.getOffset();
+      //timeClient.setTimeOffset(config.timezoneoffset*3600);
       //timeClient.setPoolServerName(config.ntpServerName.c_str);
-      timeClient.setUpdateInterval(config.Update_Time_Via_NTP_Every);
-      timeClient.forceUpdate();
+      //timeClient.setUpdateInterval(config.Update_Time_Via_NTP_Every);
+      //timeClient.forceUpdate();
     }
 
     FastLED.addLeds<WS2812B, 4, GRB>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip);
