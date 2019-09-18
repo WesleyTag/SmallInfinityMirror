@@ -89,12 +89,12 @@ void setup() {
 
     MDNS.begin("smallinfinityclock");
 
-    //MDNS.addService("http", "tcp", 80);
+    MDNS.addService("http", "tcp", 80);
     timeClient.begin();
-    //if(loadConfig()) { 
-    //  Serial.println("Configuration Loaded");
-    //} 
-    //else {                            // Save default configuration in case there is nothing on the SPIFFS
+    if(loadConfig()) { 
+      Serial.println("Configuration Loaded");
+    } 
+    else {                            // Save default configuration in case there is nothing on the SPIFFS
       config.seconds = "0x000000";
       config.minutes = "0x0a2c35"; 
       config.hours = "0xd22d00"; 
@@ -122,15 +122,18 @@ void setup() {
 
       if(config.autoTimezone){
         IPGeolocation IPG(config.IPGeoKey);
+        Serial.println("Start Updating Timezone");
         IPG.updateStatus();
-        config.timezoneoffset = IPG.getOffset();
-        timeClient.setTimeOffset(config.timezoneoffset*3600);
+        Serial.println("Updated Timezone");
+      //  config.timezoneoffset = IPG.getOffset();
+      //  timeClient.setTimeOffset(config.timezoneoffset*3600);
         //timeClient.setPoolServerName(config.ntpServerName.c_str);
-        timeClient.setUpdateInterval(config.Update_Time_Via_NTP_Every);
-        timeClient.forceUpdate();
+      //  timeClient.setUpdateInterval(config.Update_Time_Via_NTP_Every);
+      //  timeClient.forceUpdate();
       }
       saveConfig();
-   // }
+      Serial.println("Configuration Saved");
+    }
 
     FastLED.addLeds<WS2812B, 4, GRB>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip);
     FastLED.setBrightness(constrain(config.light_high,10,255));
