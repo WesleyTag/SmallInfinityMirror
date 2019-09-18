@@ -32,7 +32,7 @@ struct strConfig {
 }   config;
 
 
-/*bool  saveConfig ( )  { 
+bool  saveConfig ( )  { 
   const size_t capacity = JSON_OBJECT_SIZE(12);
   DynamicJsonDocument doc(capacity);
 
@@ -55,7 +55,7 @@ struct strConfig {
   doc["MQTT"] = config.MQTT;
   doc["IPGeoKey"] = config.IPGeoKey;
 
-  File  configFile  =  SPIFFS.open("config.json","w"); 
+  File configFile  =  SPIFFS.open("config.json","w"); 
   if  ( !configFile )  { 
     Serial.println( "Failed to open config file for writing" ); 
     return  false ; 
@@ -140,4 +140,4 @@ void resetSettings(){
   SPIFFS.remove("/config.json");
   delay(3000);
   ESP.reset();
-}*/
+}
