@@ -58,7 +58,7 @@ IPAddress server;
 PubSubClient client(espClient, server);*/
 
 #include <ArduinoJson.h>
-#include <FS.h>
+//#include <FS.h>
 
 #include "config.h"
 #include "Page_Script.js.h"
@@ -71,7 +71,7 @@ void setup() {
     // put your setup code here, to run once:
     delay(3000);
     wdt_disable();
-    Serial.begin(9600);
+    Serial.begin(74880);
 
     Serial.println("Wifi Setup Initiated");
     WiFi.setAutoConnect ( true );
@@ -91,10 +91,10 @@ void setup() {
 
     MDNS.addService("http", "tcp", 80);
     timeClient.begin();
-    if(loadConfig()) { 
-      Serial.println("Configuration Loaded");
-    } 
-    else {                            // Save default configuration in case there is nothing on the SPIFFS
+    //if(loadConfig()) { 
+    //  Serial.println("Configuration Loaded");
+    //} 
+    //else {                            // Save default configuration in case there is nothing on the SPIFFS
       config.seconds = "0x000000";
       config.minutes = "0x0a2c35"; 
       config.hours = "0xd22d00"; 
@@ -120,19 +120,19 @@ void setup() {
       lines = strtol(config.lines.c_str(), NULL, 16);
       bg = strtol(config.bg.c_str(), NULL, 16);
 
-      if(config.autoTimezone){
-        IPGeolocation IPG(config.IPGeoKey);
-        Serial.println("Start Updating Timezone");
-        IPG.updateStatus();
-        Serial.println("Updated Timezone");
-      //  config.timezoneoffset = IPG.getOffset();
-      //  timeClient.setTimeOffset(config.timezoneoffset*3600);
-        //timeClient.setPoolServerName(config.ntpServerName.c_str);
-      //  timeClient.setUpdateInterval(config.Update_Time_Via_NTP_Every);
-      //  timeClient.forceUpdate();
-      }
-      saveConfig();
-      Serial.println("Configuration Saved");
+    //  saveConfig();
+    //  Serial.println("Configuration Saved");
+    //}
+    if(config.autoTimezone){
+      IPGeolocation IPG(config.IPGeoKey);
+      Serial.println("Start Updating Timezone");
+      IPG.updateStatus();
+      Serial.println("Updated Timezone");
+      config.timezoneoffset = IPG.getOffset();
+      timeClient.setTimeOffset(config.timezoneoffset*3600);
+      //timeClient.setPoolServerName(config.ntpServerName.c_str);
+      timeClient.setUpdateInterval(config.Update_Time_Via_NTP_Every);
+      timeClient.forceUpdate();
     }
 
     FastLED.addLeds<WS2812B, 4, GRB>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip);

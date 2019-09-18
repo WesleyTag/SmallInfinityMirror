@@ -81,7 +81,7 @@ void send_NTP_configuration_html()
       if (httpServer.argName(i) == "update") config.Update_Time_Via_NTP_Every =  httpServer.arg(i).toInt(); 
       //if (httpServer.argName(i) == "tz") config.timeZone =  server.arg(i).toInt(); 
     }
-    saveConfig();
+    //saveConfig();
   }
   httpServer.send ( 200, "text/html", FPSTR(PAGE_NTPConfiguration) ); 
   Serial.println(__FUNCTION__); 

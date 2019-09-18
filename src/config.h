@@ -1,5 +1,5 @@
-#include <FS.h>
-#include <ArduinoJson.h>
+//#include <FS.h>
+//#include <ArduinoJson.h>
 
 // Function Definitions
 
@@ -32,7 +32,7 @@ struct strConfig {
 }   config;
 
 
-bool  saveConfig ( )  { 
+/*bool  saveConfig ( )  { 
   const size_t capacity = JSON_OBJECT_SIZE(12);
   DynamicJsonDocument doc(capacity);
 
@@ -140,4 +140,4 @@ void resetSettings(){
   SPIFFS.remove("/config.json");
   delay(3000);
   ESP.reset();
-}
+}*/
