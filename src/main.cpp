@@ -58,7 +58,7 @@ IPAddress server;
 PubSubClient client(espClient, server);*/
 
 #include <ArduinoJson.h>
-//#include <FS.h>
+#include <FS.h>
 
 #include "config.h"
 #include "Page_Script.js.h"
@@ -88,13 +88,14 @@ void setup() {
     //Serial.println("Wifi Setup Completed");
 
     MDNS.begin("smallinfinityclock");
-
     MDNS.addService("http", "tcp", 80);
     timeClient.begin();
-    //if(loadConfig()) { 
-    //  Serial.println("Configuration Loaded");
-    //} 
-    //else {                            // Save default configuration in case there is nothing on the SPIFFS
+    SPIFFS.begin();
+
+    if(loadConfig()) { 
+      Serial.println("Configuration Loaded");
+    } 
+    else {                            // Save default configuration in case there is nothing on the SPIFFS
       config.seconds = "0x000000";
       config.minutes = "0x0a2c35"; 
       config.hours = "0xd22d00"; 
@@ -120,9 +121,9 @@ void setup() {
       lines = strtol(config.lines.c_str(), NULL, 16);
       bg = strtol(config.bg.c_str(), NULL, 16);
 
-    //  saveConfig();
-    //  Serial.println("Configuration Saved");
-    //}
+      saveConfig();
+      //Serial.println("Configuration Saved");
+    }
     if(config.autoTimezone){
       IPGeolocation IPG(config.IPGeoKey);
       Serial.println("Start Updating Timezone");
