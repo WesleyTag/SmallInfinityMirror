@@ -55,9 +55,9 @@ bool  saveConfig ( )  {
   doc["MQTT"] = config.MQTT;
   doc["IPGeoKey"] = config.IPGeoKey;
 
-  File  configFile  =  SPIFFS.open ( "/config.json" ,  "w" ) ; 
+  File  configFile  =  SPIFFS.open("config.json","w"); 
   if  ( !configFile )  { 
-    Serial . println ( "Failed to open config file for writing" ) ; 
+    Serial.println( "Failed to open config file for writing" ); 
     return  false ; 
   }
   serializeJsonPretty(doc, configFile);
@@ -66,15 +66,16 @@ bool  saveConfig ( )  {
 }
 
 bool  loadConfig() { 
-  File  configFile  =  SPIFFS.open( "/config.json" ,  "r" ) ; 
-  if  ( !configFile )  { 
-    Serial . println ( "Failed to open config file" ) ; 
+  if (!SPIFFS.exists("config.json")) return false;
+  File  configFile  =  SPIFFS.open("config.json","r"); 
+  if(!configFile)  { 
+    Serial.println( "Failed to open config file" ); 
     return  false ; 
   }
 
-  size_t  size  =  configFile.size() ; 
-  if  ( size  >  1024 )  { 
-    Serial . println ( "Config file size is too large" ) ; 
+  size_t size  =  configFile.size(); 
+  if(size > 1024 )  { 
+    Serial.println( "Config file size is too large" ); 
     return  false ; 
   }
 

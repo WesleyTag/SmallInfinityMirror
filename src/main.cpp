@@ -91,10 +91,10 @@ void setup() {
 
     //MDNS.addService("http", "tcp", 80);
     timeClient.begin();
-    if(loadConfig()) { 
-      Serial.println("Configuration Loaded");
-    } 
-    else {                            // Save default configuration in case there is nothing on the SPIFFS
+    //if(loadConfig()) { 
+    //  Serial.println("Configuration Loaded");
+    //} 
+    //else {                            // Save default configuration in case there is nothing on the SPIFFS
       config.seconds = "0x000000";
       config.minutes = "0x0a2c35"; 
       config.hours = "0xd22d00"; 
@@ -130,7 +130,7 @@ void setup() {
         timeClient.forceUpdate();
       }
       saveConfig();
-    }
+   // }
 
     FastLED.addLeds<WS2812B, 4, GRB>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip);
     FastLED.setBrightness(constrain(config.light_high,10,255));
