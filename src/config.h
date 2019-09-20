@@ -32,7 +32,7 @@ struct strConfig {
 }   config;
 
 
-bool  saveConfig ( )  { 
+bool  saveConfig() { 
   SPIFFS.begin();
   const size_t capacity = JSON_OBJECT_SIZE(12);
   DynamicJsonDocument doc(capacity);
